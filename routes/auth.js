@@ -9,7 +9,7 @@ import user from "../models/user.js";
 const router = express.Router();
 
 router.post("/signup",async(req,res) => {
-    const{name,password,email}=req.body;
+    const{name ,password, email} = req.body;
 
     try{
         const existingUser = await usersql.findOne({where:{email}});
@@ -17,11 +17,15 @@ router.post("/signup",async(req,res) => {
             return res.status(400).json({msg:"User already exists"});
         }
 
-        const hashpassword = bcrypt.hash(password,10);
+        const hashpassword = await bcrypt.hash(password,10);
 
-        const createUser = await user.create({name,email,password:hashpassword});
+        const createUser = await user.create({
+            name,
+            email,
+            password:hashpassword
+        });
 
-        const token = jwt.sign({id:user.id},process.env. process.env.JWT_SECRET);
+        const token = jwt.sign({id:createUser.id},process.env.JWT_SECRET);
         res.json({token});
     }
     catch(err){
@@ -31,26 +35,27 @@ router.post("/signup",async(req,res) => {
 
 //login
 
-router.post("/login", async(req,res) => {
+router.post("/login", async (req,res) => {
     const{email,password}=req.body;
 
     try{
-        const userdata = await usersql.findOne({where:email});
+        const userdata = await usersql.findOne({where:{email} });
 
         if(!userdata){
             res.status(400).json({message:"Invalid credential"});
         } 
 
-        const match = await bcrypt.compare(password,user.password);
+        const match = await bcrypt.compare(password,userdata.password);
 
         if(!match){
          res.status(400).json({message:"Invalid credential"});   
         }
 
-        const token = jwt.sign({id:user.id},process.env.JWT_SECRET);
+        const token = jwt.sign({id:userdata.id},process.env.JWT_SECRET);
         res.json({token});
     }
     catch(err){
+          console.error(err);
         res.status(500).json({msg:"Error in login"});
     }
 });
