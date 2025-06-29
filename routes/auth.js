@@ -1,16 +1,18 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import user from "../models/user.js";
+import usersql from "../models/user.js";
 import { where } from "sequelize";
+import authmiddleware from "../middleware/authMiddleware.js";
+import user from "../models/user.js";
 
 const router = express.Router();
 
-router.post("/auth/signup",async(req,res) => {
+router.post("/signup",async(req,res) => {
     const{name,password,email}=req.body;
 
     try{
-        const existingUser = await user.findOne({where:{email}});
+        const existingUser = await usersql.findOne({where:{email}});
         if(existingUser){
             return res.status(400).json({msg:"User already exists"});
         }
@@ -29,11 +31,11 @@ router.post("/auth/signup",async(req,res) => {
 
 //login
 
-router.post("/auth/login",(req,res) => {
+router.post("/login", async(req,res) => {
     const{email,password}=req.body;
 
     try{
-        const userdata = await user.findOne({where:email});
+        const userdata = await usersql.findOne({where:email});
 
         if(!userdata){
             res.status(400).json({message:"Invalid credential"});
@@ -54,4 +56,19 @@ router.post("/auth/login",(req,res) => {
 });
 
 //get
+router.get("/getall", authmiddleware, async(req,res) => {
 
+    try{
+
+        const user = await usersql.findByPk(req.user.id, {
+            attributes:['id','user','email']
+        });
+        res.json(user);
+    }
+    catch(err){
+        
+    res.status(500).json({ msg: "Error getting user" });
+    }
+})
+
+export default router;
